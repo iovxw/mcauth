@@ -34,7 +34,12 @@ fn make_request<S: serde::Serialize>(api: &str,
         req.url(&format!("{}/{}", api, endpoint))?;
         req.follow_location(true)?;
         req.accept_encoding("")?; // accept all encoding
-        req.useragent("libmcauth/1.0 (https://github.com/iovxw/mcauth)")?;
+        req.useragent(concat!(env!("CARGO_PKG_NAME"),
+                               "/",
+                               env!("CARGO_PKG_VERSION"),
+                               " (",
+                               env!("CARGO_PKG_HOMEPAGE"),
+                               ")"))?;
         req.timeout(Duration::from_secs(timeout_sec))?;
         req.connect_timeout(Duration::from_secs(connect_timeout_sec))?;
         req.write_function(move |data| {

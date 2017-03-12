@@ -2,6 +2,10 @@
 name = "mcauth"
 version = "0.1.0"
 authors = ["iovxw <iovxw@outlook.com>"]
+license = "Unlicense"
+readme = "README.md"
+homepage = "https://github.com/iovxw/mcauth"
+repository = "https://github.com/iovxw/mcauth"
 
 [dependencies]
 error-chain = "0.10"
