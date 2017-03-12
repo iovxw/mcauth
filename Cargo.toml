@@ -1,0 +1,16 @@
+[package]
+name = "mcauth"
+version = "0.1.0"
+authors = ["iovxw <iovxw@outlook.com>"]
+
+[dependencies]
+error-chain = "0.10"
+
+serde_json = "0.9"
+serde = "*"
+serde_derive = "*"
+
+tokio-curl = "0.1"
+futures = "*"
+tokio-core = "*"
+curl = "*"
