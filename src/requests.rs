@@ -56,15 +56,77 @@ fn parse_error(code: u32, v: &[u8]) -> Error {
         .unwrap_or_else(|e| e.into())
 }
 
+macro_rules! if_empty_tuple {
+    (() { $do_: expr } else { $else_: expr }) => ($do_);
+    ($ty: ty { $do_: expr } else { $else_: expr }) => ($else_);
+}
+
+macro_rules! impl_send_with {
+    ($struct_ty: ty, $endpoint: tt, $result_ty: ty) => {
+        pub fn send_with<'a>(self,
+                             session: Session,
+                             api: &str,
+                             timeout_sec: u64,
+                             connect_timeout_sec: u64)
+                             -> impl Future<Item = $result_ty, Error = Error> + 'a {
+            futures::future::result(make_request(api, $endpoint, &self,
+                                                 timeout_sec, connect_timeout_sec))
+                .and_then(move |(req, resp_body)| {
+                    session
+                        .perform(req)
+                        .map_err(|e| e.into())
+                        .map(move |resp| (resp, resp_body))
+                })
+                .and_then(|(mut resp, resp_body)| {
+                    futures::future::result(resp.response_code())
+                        .map_err(|e| e.into())
+                        .map(move |resp_code| (resp_code, resp_body))
+                })
+                .and_then(|(resp_code, resp_body)| {
+                    let expect_code = if_empty_tuple!($result_ty {
+                        204
+                    } else {
+                        200
+                    });
+                    if resp_code == expect_code {
+                        if_empty_tuple!($result_ty {
+                            Ok(())
+                        } else {
+                            serde_json::from_slice(&resp_body.lock().unwrap())
+                                .map_err(|e| e.into())
+                        })
+                    } else {
+                        Err(parse_error(resp_code, &resp_body.lock().unwrap()))
+                    }
+                })
+        }
+
+    };
+}
+
+macro_rules! impl_send {
+    ($struct_ty: ty, $endpoint: tt, $result_ty: ty) => {
+        impl $struct_ty {
+            impl_send_with!{$struct_ty, $endpoint, $result_ty}
+
+            pub fn send<'a>(self,
+                            session: Session)
+                            -> impl Future<Item = $result_ty, Error = Error> + 'a {
+                self.send_with(session, ::API, 10, 10)
+            }
+        }
+    };
+}
+
 #[derive(Serialize, Debug)]
-pub struct Agent<'a> {
-    pub name: &'a str,
+pub struct Agent {
+    pub name: &'static str,
     pub version: u32,
 }
 
 #[derive(OptionConstructor, Serialize, Debug)]
-pub struct Authenticate<'a> {
-    pub agent: Agent<'a>,
+pub struct Authenticate {
+    pub agent: Agent,
     pub username: String,
     pub password: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -75,36 +137,7 @@ pub struct Authenticate<'a> {
     pub request_user: Option<bool>,
 }
 
-impl<'a> Authenticate<'a> {
-    pub fn send_with_api(self,
-                         session: Session,
-                         api: &str)
-                         -> impl Future<Item = objects::Authenticate, Error = Error> + 'a {
-        futures::future::result(make_request(api, "authenticate", &self, 10, 10))
-            .and_then(move |(req, resp_body)| {
-                session.perform(req).map_err(|e| e.into()).map(move |resp| (resp, resp_body))
-            })
-            .and_then(|(mut resp, resp_body)| {
-                futures::future::result(resp.response_code())
-                    .map_err(|e| e.into())
-                    .map(move |resp_code| (resp_code, resp_body))
-            })
-            .and_then(|(resp_code, resp_body)| if resp_code == 200 {
-                Ok(resp_body)
-            } else {
-                Err(parse_error(resp_code, &resp_body.lock().unwrap()))
-            })
-            .and_then(|resp_body| {
-                serde_json::from_slice(&resp_body.lock().unwrap()).map_err(|e| e.into())
-            })
-    }
-
-    pub fn send(self,
-                session: Session)
-                -> impl Future<Item = objects::Authenticate, Error = Error> + 'a {
-        self.send_with_api(session, ::API)
-    }
-}
+impl_send!{Authenticate, "authenticate", objects::Authenticate}
 
 #[derive(OptionConstructor, Serialize, Debug)]
 pub struct Refresh {
@@ -120,36 +153,7 @@ pub struct Refresh {
     pub request_user: Option<bool>,
 }
 
-impl Refresh {
-    pub fn send_with_api<'a>(self,
-                             session: Session,
-                             api: &str)
-                             -> impl Future<Item = objects::Refresh, Error = Error> + 'a {
-        futures::future::result(make_request(api, "refresh", &self, 10, 10))
-            .and_then(move |(req, resp_body)| {
-                session.perform(req).map_err(|e| e.into()).map(move |resp| (resp, resp_body))
-            })
-            .and_then(|(mut resp, resp_body)| {
-                futures::future::result(resp.response_code())
-                    .map_err(|e| e.into())
-                    .map(move |resp_code| (resp_code, resp_body))
-            })
-            .and_then(|(resp_code, resp_body)| if resp_code == 200 {
-                Ok(resp_body)
-            } else {
-                Err(parse_error(resp_code, &resp_body.lock().unwrap()))
-            })
-            .and_then(|resp_body| {
-                serde_json::from_slice(&resp_body.lock().unwrap()).map_err(|e| e.into())
-            })
-    }
-
-    pub fn send<'a>(self,
-                    session: Session)
-                    -> impl Future<Item = objects::Refresh, Error = Error> + 'a {
-        self.send_with_api(session, ::API)
-    }
-}
+impl_send!{Refresh, "refresh", objects::Refresh}
 
 #[derive(OptionConstructor, Serialize, Debug)]
 pub struct Validate {
@@ -159,31 +163,7 @@ pub struct Validate {
     pub client_token: String,
 }
 
-impl Validate {
-    pub fn send_with_api<'a>(self,
-                             session: Session,
-                             api: &str)
-                             -> impl Future<Item = (), Error = Error> + 'a {
-        futures::future::result(make_request(api, "validate", &self, 10, 10))
-            .and_then(move |(req, resp_body)| {
-                session.perform(req).map_err(|e| e.into()).map(move |resp| (resp, resp_body))
-            })
-            .and_then(|(mut resp, resp_body)| {
-                futures::future::result(resp.response_code())
-                    .map_err(|e| e.into())
-                    .map(move |resp_code| (resp_code, resp_body))
-            })
-            .and_then(|(resp_code, resp_body)| if resp_code == 204 {
-                Ok(())
-            } else {
-                Err(parse_error(resp_code, &resp_body.lock().unwrap()))
-            })
-    }
-
-    pub fn send<'a>(self, session: Session) -> impl Future<Item = (), Error = Error> + 'a {
-        self.send_with_api(session, ::API)
-    }
-}
+impl_send!{Validate, "validate", ()}
 
 #[derive(OptionConstructor, Serialize, Debug)]
 pub struct Signout {
@@ -191,32 +171,7 @@ pub struct Signout {
     pub password: String,
 }
 
-impl Signout {
-    pub fn send_with_api<'a>(self,
-                             session: Session,
-                             api: &str)
-                             -> impl Future<Item = (), Error = Error> + 'a {
-        futures::future::result(make_request(api, "signout", &self, 10, 10))
-            .and_then(move |(req, resp_body)| {
-                session.perform(req).map_err(|e| e.into()).map(move |resp| (resp, resp_body))
-            })
-            .and_then(|(mut resp, resp_body)| {
-                futures::future::result(resp.response_code())
-                    .map_err(|e| e.into())
-                    .map(move |resp_code| (resp_code, resp_body))
-            })
-            .and_then(|(resp_code, resp_body)| if resp_code == 204 {
-                Ok(())
-            } else {
-                Err(parse_error(resp_code, &resp_body.lock().unwrap()))
-            })
-    }
-
-    pub fn send<'a>(self, session: Session) -> impl Future<Item = (), Error = Error> + 'a {
-        self.send_with_api(session, ::API)
-    }
-}
-
+impl_send!{Signout, "signout", ()}
 
 #[derive(OptionConstructor, Serialize, Debug)]
 pub struct Invalidate {
@@ -226,28 +181,4 @@ pub struct Invalidate {
     pub client_token: String,
 }
 
-impl Invalidate {
-    pub fn send_with_api<'a>(self,
-                             session: Session,
-                             api: &str)
-                             -> impl Future<Item = (), Error = Error> + 'a {
-        futures::future::result(make_request(api, "invalidate", &self, 10, 10))
-            .and_then(move |(req, resp_body)| {
-                session.perform(req).map_err(|e| e.into()).map(move |resp| (resp, resp_body))
-            })
-            .and_then(|(mut resp, resp_body)| {
-                futures::future::result(resp.response_code())
-                    .map_err(|e| e.into())
-                    .map(move |resp_code| (resp_code, resp_body))
-            })
-            .and_then(|(resp_code, resp_body)| if resp_code == 204 {
-                Ok(())
-            } else {
-                Err(parse_error(resp_code, &resp_body.lock().unwrap()))
-            })
-    }
-
-    pub fn send<'a>(self, session: Session) -> impl Future<Item = (), Error = Error> + 'a {
-        self.send_with_api(session, ::API)
-    }
-}
+impl_send!{Invalidate, "invalidate", ()}
