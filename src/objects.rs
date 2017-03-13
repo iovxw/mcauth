@@ -13,6 +13,24 @@ pub struct Profile {
     pub legacy: Option<bool>,
 }
 
+impl Profile {
+    pub fn new(id: String, name: String) -> Profile {
+        Profile {
+            id: id,
+            name: name,
+            legacy: None,
+        }
+    }
+
+    pub fn new_legacy(id: String, name: String) -> Profile {
+        Profile {
+            id: id,
+            name: name,
+            legacy: Some(true),
+        }
+    }
+}
+
 #[derive(Deserialize, Debug)]
 pub struct Property {
     pub name: String,
