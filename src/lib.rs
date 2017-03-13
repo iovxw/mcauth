@@ -11,6 +11,8 @@ extern crate serde_json;
 extern crate serde_derive;
 #[macro_use]
 extern crate error_chain;
+#[macro_use]
+extern crate option_constructor_derive;
 
 pub mod objects;
 pub mod requests;

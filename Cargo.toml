@@ -9,6 +9,7 @@ repository = "https://github.com/iovxw/mcauth"
 
 [dependencies]
 error-chain = "0.10"
+option-constructor-derive = "0.1"
 
 serde_json = "0.9"
 serde = "*"

@@ -62,7 +62,7 @@ pub struct Agent<'a> {
     pub version: u32,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(OptionConstructor, Serialize, Debug)]
 pub struct Authenticate<'a> {
     pub agent: Agent<'a>,
     pub username: String,
@@ -76,29 +76,6 @@ pub struct Authenticate<'a> {
 }
 
 impl<'a> Authenticate<'a> {
-    pub fn new(username: String, password: String) -> Authenticate<'a> {
-        Authenticate {
-            agent: Agent {
-                name: "Minecraft",
-                version: 1,
-            },
-            username: username,
-            password: password,
-            client_token: None,
-            request_user: None,
-        }
-    }
-
-    pub fn client_token(mut self, token: String) -> Self {
-        self.client_token = Some(token);
-        self
-    }
-
-    pub fn request_user(mut self, t: bool) -> Self {
-        self.request_user = Some(t);
-        self
-    }
-
     pub fn send_with_api(self,
                          session: Session,
                          api: &str)
@@ -129,7 +106,7 @@ impl<'a> Authenticate<'a> {
     }
 }
 
-#[derive(Serialize, Debug)]
+#[derive(OptionConstructor, Serialize, Debug)]
 pub struct Refresh {
     #[serde(rename = "accessToken")]
     pub access_token: String,
@@ -144,25 +121,6 @@ pub struct Refresh {
 }
 
 impl Refresh {
-    pub fn new(access_token: String, client_token: String) -> Self {
-        Refresh {
-            access_token: access_token,
-            client_token: client_token,
-            selected_profile: None,
-            request_user: None,
-        }
-    }
-
-    pub fn selected_profile(mut self, profile: ::objects::Profile) -> Self {
-        self.selected_profile = Some(profile);
-        self
-    }
-
-    pub fn request_user(mut self, t: bool) -> Self {
-        self.request_user = Some(t);
-        self
-    }
-
     pub fn send_with_api<'a>(self,
                              session: Session,
                              api: &str)
@@ -193,7 +151,7 @@ impl Refresh {
     }
 }
 
-#[derive(Serialize, Debug)]
+#[derive(OptionConstructor, Serialize, Debug)]
 pub struct Validate {
     #[serde(rename = "accessToken")]
     pub access_token: String,
@@ -202,13 +160,6 @@ pub struct Validate {
 }
 
 impl Validate {
-    pub fn new(access_token: String, client_token: String) -> Self {
-        Validate {
-            access_token: access_token,
-            client_token: client_token,
-        }
-    }
-
     pub fn send_with_api<'a>(self,
                              session: Session,
                              api: &str)
@@ -234,20 +185,13 @@ impl Validate {
     }
 }
 
-#[derive(Serialize, Debug)]
+#[derive(OptionConstructor, Serialize, Debug)]
 pub struct Signout {
     pub username: String,
     pub password: String,
 }
 
 impl Signout {
-    pub fn new(username: String, password: String) -> Self {
-        Signout {
-            username: username,
-            password: password,
-        }
-    }
-
     pub fn send_with_api<'a>(self,
                              session: Session,
                              api: &str)
@@ -274,7 +218,7 @@ impl Signout {
 }
 
 
-#[derive(Serialize, Debug)]
+#[derive(OptionConstructor, Serialize, Debug)]
 pub struct Invalidate {
     #[serde(rename = "accessToken")]
     pub access_token: String,
@@ -283,13 +227,6 @@ pub struct Invalidate {
 }
 
 impl Invalidate {
-    pub fn new(access_token: String, client_token: String) -> Self {
-        Invalidate {
-            access_token: access_token,
-            client_token: client_token,
-        }
-    }
-
     pub fn send_with_api<'a>(self,
                              session: Session,
                              api: &str)
