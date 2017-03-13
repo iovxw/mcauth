@@ -50,8 +50,8 @@ fn make_request<S: serde::Serialize>(api: &str,
     Ok((req, buf))
 }
 
-fn parse_error(code: u32, s: &str) -> Error {
-    serde_json::from_str(s)
+fn parse_error(code: u32, v: &[u8]) -> Error {
+    serde_json::from_slice(v)
         .map(|e| ErrorKind::Mojang(code, e).into())
         .unwrap_or_else(|e| e.into())
 }
@@ -115,14 +115,10 @@ impl<'a> Authenticate<'a> {
             .and_then(|(resp_code, resp_body)| if resp_code == 200 {
                 Ok(resp_body)
             } else {
-                let b = resp_body.lock().unwrap();
-                let body = String::from_utf8_lossy(&b);
-                Err(parse_error(resp_code, &body))
+                Err(parse_error(resp_code, &resp_body.lock().unwrap()))
             })
             .and_then(|resp_body| {
-                let b = resp_body.lock().unwrap();
-                let body = String::from_utf8_lossy(&b);
-                serde_json::from_str(&body).map_err(|e| e.into())
+                serde_json::from_slice(&resp_body.lock().unwrap()).map_err(|e| e.into())
             })
     }
 
@@ -183,14 +179,10 @@ impl Refresh {
             .and_then(|(resp_code, resp_body)| if resp_code == 200 {
                 Ok(resp_body)
             } else {
-                let b = resp_body.lock().unwrap();
-                let body = String::from_utf8_lossy(&b);
-                Err(parse_error(resp_code, &body))
+                Err(parse_error(resp_code, &resp_body.lock().unwrap()))
             })
             .and_then(|resp_body| {
-                let b = resp_body.lock().unwrap();
-                let body = String::from_utf8_lossy(&b);
-                serde_json::from_str(&body).map_err(|e| e.into())
+                serde_json::from_slice(&resp_body.lock().unwrap()).map_err(|e| e.into())
             })
     }
 
@@ -233,9 +225,7 @@ impl Validate {
             .and_then(|(resp_code, resp_body)| if resp_code == 204 {
                 Ok(())
             } else {
-                let b = resp_body.lock().unwrap();
-                let body = String::from_utf8_lossy(&b);
-                Err(parse_error(resp_code, &body))
+                Err(parse_error(resp_code, &resp_body.lock().unwrap()))
             })
     }
 
@@ -274,9 +264,7 @@ impl Signout {
             .and_then(|(resp_code, resp_body)| if resp_code == 204 {
                 Ok(())
             } else {
-                let b = resp_body.lock().unwrap();
-                let body = String::from_utf8_lossy(&b);
-                Err(parse_error(resp_code, &body))
+                Err(parse_error(resp_code, &resp_body.lock().unwrap()))
             })
     }
 
@@ -318,9 +306,7 @@ impl Invalidate {
             .and_then(|(resp_code, resp_body)| if resp_code == 204 {
                 Ok(())
             } else {
-                let b = resp_body.lock().unwrap();
-                let body = String::from_utf8_lossy(&b);
-                Err(parse_error(resp_code, &body))
+                Err(parse_error(resp_code, &resp_body.lock().unwrap()))
             })
     }
 
