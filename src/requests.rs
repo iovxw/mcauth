@@ -67,10 +67,10 @@ pub struct Authenticate<'a> {
     pub agent: Agent<'a>,
     pub username: String,
     pub password: String,
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "clientToken")]
     pub client_token: Option<String>,
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "requestUser")]
     pub request_user: Option<bool>,
 }
@@ -139,10 +139,10 @@ pub struct Refresh {
     pub access_token: String,
     #[serde(rename = "clientToken")]
     pub client_token: String,
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "selectedProfile")]
     pub selected_profile: Option<objects::Profile>,
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "requestUser")]
     pub request_user: Option<bool>,
 }
@@ -221,7 +221,7 @@ impl Validate {
                              session: Session,
                              api: &str)
                              -> impl Future<Item = (), Error = Error> + 'a {
-        futures::future::result(make_request(api, "refresh", &self, 10, 10))
+        futures::future::result(make_request(api, "validate", &self, 10, 10))
             .and_then(move |(req, resp_body)| {
                 session.perform(req).map_err(|e| e.into()).map(move |resp| (resp, resp_body))
             })
@@ -262,7 +262,7 @@ impl Signout {
                              session: Session,
                              api: &str)
                              -> impl Future<Item = (), Error = Error> + 'a {
-        futures::future::result(make_request(api, "refresh", &self, 10, 10))
+        futures::future::result(make_request(api, "signout", &self, 10, 10))
             .and_then(move |(req, resp_body)| {
                 session.perform(req).map_err(|e| e.into()).map(move |resp| (resp, resp_body))
             })
@@ -306,7 +306,7 @@ impl Invalidate {
                              session: Session,
                              api: &str)
                              -> impl Future<Item = (), Error = Error> + 'a {
-        futures::future::result(make_request(api, "refresh", &self, 10, 10))
+        futures::future::result(make_request(api, "invalidate", &self, 10, 10))
             .and_then(move |(req, resp_body)| {
                 session.perform(req).map_err(|e| e.into()).map(move |resp| (resp, resp_body))
             })
