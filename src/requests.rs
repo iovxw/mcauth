@@ -62,7 +62,7 @@ macro_rules! if_empty_tuple {
 }
 
 macro_rules! impl_send_with {
-    ($struct_ty: ty, $endpoint: tt, $result_ty: ty) => {
+    (($struct_ty: ty, $endpoint: tt) -> $result_ty: ty) => {
         pub fn send_with<'a>(self,
                              session: Session,
                              api: &str,
@@ -100,14 +100,13 @@ macro_rules! impl_send_with {
                     }
                 })
         }
-
     };
 }
 
 macro_rules! impl_send {
-    ($struct_ty: ty, $endpoint: tt, $result_ty: ty) => {
+    (($struct_ty: ty, $endpoint: tt) -> $result_ty: ty) => {
         impl $struct_ty {
-            impl_send_with!{$struct_ty, $endpoint, $result_ty}
+            impl_send_with!{ ($struct_ty, $endpoint) -> $result_ty }
 
             pub fn send<'a>(self,
                             session: Session)
@@ -137,7 +136,7 @@ pub struct Authenticate {
     pub request_user: Option<bool>,
 }
 
-impl_send!{Authenticate, "authenticate", objects::Authenticate}
+impl_send!{ (Authenticate, "authenticate") -> objects::Authenticate }
 
 #[derive(OptionConstructor, Serialize, Debug)]
 pub struct Refresh {
@@ -153,7 +152,7 @@ pub struct Refresh {
     pub request_user: Option<bool>,
 }
 
-impl_send!{Refresh, "refresh", objects::Refresh}
+impl_send!{ (Refresh, "refresh") -> objects::Refresh }
 
 #[derive(OptionConstructor, Serialize, Debug)]
 pub struct Validate {
@@ -163,7 +162,7 @@ pub struct Validate {
     pub client_token: String,
 }
 
-impl_send!{Validate, "validate", ()}
+impl_send!{ (Validate, "validate") -> () }
 
 #[derive(OptionConstructor, Serialize, Debug)]
 pub struct Signout {
@@ -171,7 +170,7 @@ pub struct Signout {
     pub password: String,
 }
 
-impl_send!{Signout, "signout", ()}
+impl_send!{ (Signout, "signout") -> () }
 
 #[derive(OptionConstructor, Serialize, Debug)]
 pub struct Invalidate {
@@ -181,4 +180,4 @@ pub struct Invalidate {
     pub client_token: String,
 }
 
-impl_send!{Invalidate, "invalidate", ()}
+impl_send!{ (Invalidate, "invalidate") -> () }
